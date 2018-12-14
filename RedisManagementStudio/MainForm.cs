@@ -9,103 +9,88 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Redis.Management;
 using System.Net;
+using CSRedis;
+using WeifenLuo.WinFormsUI.Docking;
 
 namespace RedisManagementStudio
 {
     public partial class MainForm : Form
     {
-        private const string TREEVIEW_FOCUS_CHANGE = "TREEVIEW_FOCUS_CHANGE";
-        private RedisInstance _instance;
+        private DeserializeDockContent _deserializeDockContent;
+        frmExplorer frmExplorer ;
+
+        private Dictionary<string, DockContent> dockContents = new Dictionary<string, DockContent>();
+
+        MainFormDocumentsFocusAbserver _documentsFocusAbserver;
 
         public MainForm()
         {
             InitializeComponent();
 
-            RMStudio.Instance.RedisInstanceConnected += Instance_RedisInstanceConnected;
-            RMStudio.Instance.Subscribe(TREEVIEW_FOCUS_CHANGE, new Action<string, TargetChangingEventArgs<object>>(TreeView_Focus_Changing),  new Action<string, TargetChangedEventArgs<object>>(TreeView_Focus_Changed));
+            //RMStudio.Instance.Subscribe(
+            //    FocusKeys.STUDIO_FOCUS
+            //    , new Action<string, TargetChangingEventArgs<object>>(Studio_Focus_Changing)
+            //    ,  new Action<string, TargetChangedEventArgs<object>>(Studio_Focus_Changed)
+            // );
+
+            
+            this.dockPanel1.Theme = this.vS2015LightTheme1;
+
+            _documentsFocusAbserver = new MainFormDocumentsFocusAbserver(
+                new string[]{
+                FocusKeys.STUDIO_FOCUS
+                , FocusKeys.REDIS_MONITOR
+                }, dockPanel1);
         }
 
-        private void TreeView_Focus_Changing(string key, TargetChangingEventArgs<object> args)
+        private IDockContent GetContentFromPersistString(string persistString)
         {
-            if (MessageBox.Show("是否取消？", "Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            Console.WriteLine(persistString);
+
+            if(persistString == typeof(frmExplorer).ToString())
             {
-                args.Cancel = true;
+                return frmExplorer = new frmExplorer();
             }
+
+            return null;
         }
 
-        private void TreeView_Focus_Changed(string key, TargetChangedEventArgs<object> args)
+        private void Studio_Focus_Changing(string key, TargetChangingEventArgs<object> args)
         {
+            //if (args.Original!=null && MessageBox.Show("是否取消？", "Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            //{
+            //    args.Cancel = true;
+            //}
+        }
+
+        private void Studio_Focus_Changed(string key, TargetChangedEventArgs<object> args)
+        {
+            if (args.NewTarget == null) return;
+
             Console.WriteLine(args.NewTarget.ToString());
-            Control control = null;
             if(args.NewTarget is RedisInstance)
             {
-                control = new uctRedis((RedisInstance)args.NewTarget);
+                frmRedis frmRedis = new frmRedis(args.NewTarget as RedisInstance);
+
+                frmRedis.Text = "资源管理器";
+                frmRedis.Show(this.dockPanel1);
+                //frmRedis.DockTo(this.dockPanel1, DockStyle.Fill);
+                //frmRedis.Text = "资源管理器";
             }
 
             if (args.NewTarget is RedisInstanceDatabase)
             {
-                control = new uctDatabase((RedisInstanceDatabase)args.NewTarget);
+                //control = new uctDatabase((RedisInstanceDatabase)args.NewTarget);
             }
 
-            splitContainer1.Panel2.Controls.Clear();
-
-            if (control != null)
-            {
-                control.Dock = DockStyle.Fill;
-                splitContainer1.Panel2.Controls.Add(control);
-            }
         }
 
-        private void Instance_RedisInstanceConnected(object sender, TEventArgs<RedisInstance> e)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(() => { Instance_RedisInstanceConnected(sender, e); }));
-            }
-            else
-            {
-                string txtName = string.Format("{0}:{1}", e.Item.IPEndPoint.Address, e.Item.IPEndPoint.Port);
-
-                TreeNode node = treeView1.Nodes.Add(txtName, txtName, "redis");
-                node.Tag = e.Item;
-                foreach(RedisInstanceDatabase db in e.Item.Databases)
-                {
-                    string key = string.Format("db{0}", db.Index);
-                    string Text = string.Format("db{0}[{1}]", db.Index, db.Keys);
-                    TreeNode dbNode = node.Nodes.Add(key, Text, db.Keys>0? "database":"database-off","database-selected");
-                    dbNode.Tag = db;
-                }
-
-                node.Expand();
-            }
-        }
-
-        //private void button1_Click(object sender, EventArgs e)
-        //{
-        //    if (_instance == null)
-        //    {
-        //        _instance = new RedisInstance();
-        //        _instance.StatusChanged += _instance_StatusChanged;
-        //    }
-        //    else if(_instance.Status == RedisInstanceStatus.Connected)
-        //    {
-        //        return;
-        //    }
-        //    IPAddress ip = IPAddress.Any;
-        //    IPAddress.TryParse("127.0.0.1", out ip);
-
-        //    _instance.Connect(new IPEndPoint(ip, 6379), "123456");
-        //}
 
         private void _instance_StatusChanged(object sender, TargetChangedEventArgs<RedisInstanceStatus> e)
         {
             Console.WriteLine("Status changed:{0}", e.NewTarget);
         }
 
-        //private void button2_Click(object sender, EventArgs e)
-        //{
-        //    _instance.Disconnect();
-        //}
 
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
@@ -113,10 +98,38 @@ namespace RedisManagementStudio
             connect.ShowDialog(this);
         }
 
+        RedisClient client = null;
         private void MainForm_Load(object sender, EventArgs e)
         {
+            if (System.IO.File.Exists("layout.sf"))
+            {
+                _deserializeDockContent = new DeserializeDockContent(GetContentFromPersistString);
+                dockPanel1.LoadFromXml("layout.sf", _deserializeDockContent);
+            }
+
+            if (frmExplorer == null)
+            {
+                frmExplorer = new frmExplorer();
+                frmExplorer.Show(this.dockPanel1);
+                frmExplorer.DockTo(this.dockPanel1, DockStyle.Left);
+            }
+
             frmConnect connect = new frmConnect();
             connect.ShowDialog(this);
+
+            //client = new RedisClient("127.0.0.1", 6379);
+            //client.Auth("123456");
+            //client.MonitorReceived += Client_MonitorReceived;
+            //Task task = new Task(new Action(client.Monitor));
+            //Func<string> func = new Func<string>(client.Monitor);
+            //func.BeginInvoke(null, null);
+            //client.Monitor();
+
+        }
+
+        private void Client_MonitorReceived(object sender, RedisMonitorEventArgs e)
+        {
+            Console.WriteLine(e.Message);
         }
 
         private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
@@ -126,14 +139,27 @@ namespace RedisManagementStudio
 
         private void button1_Click(object sender, EventArgs e)
         {
-            RMStudio.Instance.Unsubscribe(TREEVIEW_FOCUS_CHANGE, new Action<string, TargetChangedEventArgs<object>>(TreeView_Focus_Changed));
+            //RMStudio.Instance.Unsubscribe(TREEVIEW_FOCUS_CHANGE, new Action<string, TargetChangedEventArgs<object>>(TreeView_Focus_Changed));
+            try
+            {
+                string rtn = client.Echo("ABC");
+                Console.WriteLine(rtn);
+            }catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
 
-        private void treeView1_BeforeSelect(object sender, TreeViewCancelEventArgs e)
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            bool isCancelled = true;
-            RMStudio.Instance.Publish(TREEVIEW_FOCUS_CHANGE, e.Node.Tag, out isCancelled);
-            e.Cancel = isCancelled;
+            dockPanel1.SaveAsXml("layout.sf");
         }
+
+        //private void treeView1_BeforeSelect(object sender, TreeViewCancelEventArgs e)
+        //{
+        //    bool isCancelled = true;
+        //    RMStudio.Instance.Publish(TREEVIEW_FOCUS_CHANGE, e.Node.Tag, out isCancelled);
+        //    e.Cancel = isCancelled;
+        //}
     }
 }

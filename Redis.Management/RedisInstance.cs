@@ -15,6 +15,7 @@ namespace Redis.Management
 
         public int PulseInterval { get; set; }
         public IPEndPoint IPEndPoint { get; set; }
+        public string Password { get; set; }
         private CancellationTokenSource _cancellationSource;
 
         private Dictionary<string, string> _configs = new Dictionary<string, string>();
@@ -61,6 +62,19 @@ namespace Redis.Management
             StatusChanged?.Invoke(this, args);
         }
 
+        private RedisInstanceMonitor _monitor;
+        public RedisInstanceMonitor Monitor
+        {
+            get
+            {
+                if (_monitor == null)
+                {
+                    _monitor = new RedisInstanceMonitor(this);
+                }
+                return _monitor;
+            }
+        }
+
         public RedisInstance()
         {
             PulseInterval = 3000;
@@ -72,14 +86,14 @@ namespace Redis.Management
             if (_status.Equals(RedisInstanceStatus.Connected)) throw new Exception("Instance is already connected to a server.");
 
             IPEndPoint = endpoint;
+            Password = password;
             string connString = string.Format("{0}[:{1}],password={2},defaultDatabase=0,poolsize=50,ssl=false,writeBuffer=10240,prefix=", endpoint.Address, endpoint.Port, password);
             _client = new CSRedisClient(connString);
-            //_client
 
             _pulseClient = new RedisClient(endpoint);
             bool isConnected = false;
             
-                isConnected = _pulseClient.Connect(3000);
+            isConnected = _pulseClient.Connect(3000);
             
             if (isConnected)
             {
@@ -91,6 +105,7 @@ namespace Redis.Management
                     foreach(Tuple<string,string> tuple in rtn)
                     {
                         _configs[tuple.Item1] = tuple.Item2;
+                        Console.WriteLine("{0}={1}", tuple.Item1, tuple.Item2);
                     }
 
                     _databases.Clear();

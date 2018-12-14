@@ -18,10 +18,24 @@ namespace Redis.Management
             get { return _newTarget; }
         }
 
+        private object _context;
+        public object Context
+        {
+            get { return _context; }
+        }
+
+
         public TargetChangedEventArgs(T original, T newTarget)
+            :this(original, newTarget, null)
+        {
+
+        }
+
+        public TargetChangedEventArgs(T original, T newTarget, object context)
         {
             this._original = original;
             this._newTarget = newTarget;
+            _context = context;
         }
     }
 
@@ -40,10 +54,23 @@ namespace Redis.Management
             get { return _newTarget; }
         }
 
+        private object _context;
+        public object Context
+        {
+            get { return _context; }
+        }
+
         public TargetChangingEventArgs(T original, T newTarget)
+            : this(original, newTarget, null)
+        {
+
+        }
+
+        public TargetChangingEventArgs(T original, T newTarget, object context)
         {
             this._newTarget = newTarget;
             this._original = original;
+            _context = context;
         }
     }
 }

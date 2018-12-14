@@ -79,13 +79,13 @@ namespace RedisManagementStudio
 
         }
 
-        public void Publish(string key, object value, out bool isCancelled)
+        public void Publish(string key, object value, out bool isCancelled, object context =null)
         {
             isCancelled = false;
 
             if (_changingActions.ContainsKey(key) && _changingActions[key]!=null)
             {
-                TargetChangingEventArgs<object> args = new TargetChangingEventArgs<object>(_values.ContainsKey(key)?_values[key]:null, value);
+                TargetChangingEventArgs<object> args = new TargetChangingEventArgs<object>(_values.ContainsKey(key)?_values[key]:null, value, context);
                 _changingActions[key](key, args);
                 if (args.Cancel)
                 {
@@ -97,7 +97,7 @@ namespace RedisManagementStudio
             _values[key] = value;
             if(_changedActions.ContainsKey(key) && _changedActions[key] != null)
             {
-                _changedActions[key](key, new TargetChangedEventArgs<object>(original, value));
+                _changedActions[key](key, new TargetChangedEventArgs<object>(original, value, context));
             }
 
         }

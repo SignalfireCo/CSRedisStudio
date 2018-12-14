@@ -64,12 +64,8 @@ namespace RedisManagementStudio
 
             _cancellationTokenSource = new CancellationTokenSource();
             Task<RedisInstance> task = new Task<RedisInstance>(()=> Connecting(ep, txtPassword.Text), _cancellationTokenSource.Token);
-
-            //Task.WaitAll(task);
-
-            task.Start();
-
             
+            task.Start();            
 
             task.ContinueWith(t => {
                 if (this.InvokeRequired)
@@ -86,6 +82,7 @@ namespace RedisManagementStudio
                             txtPassword.Enabled = true;
                             txtPort.Enabled = true;
                             bttnConnect.Enabled = true;
+                            _cancellationTokenSource = null;
                         }
                     }));
                 }
@@ -99,7 +96,11 @@ namespace RedisManagementStudio
             RedisInstance instance = new RedisInstance();
             try
             {
-                instance.Connect(endpoint, password);
+                bool isConnected = instance.Connect(endpoint, password);
+                if (!isConnected)
+                {
+                    MessageBox.Show("无法连接到服务器，请确认服务器正常运行。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }catch(Exception ex)
             {
                 Action action = new Action(() => {
