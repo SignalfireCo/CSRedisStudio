@@ -1,0 +1,2 @@
+# CSRedisStudio
+CSRedis Management Studio
