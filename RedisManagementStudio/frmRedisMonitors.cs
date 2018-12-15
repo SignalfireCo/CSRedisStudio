@@ -19,6 +19,8 @@ namespace RedisManagementStudio
         public frmRedisMonitors()
         {
             InitializeComponent();
+
+            tscbSources.SelectedIndex = 1;
         }
 
         public frmRedisMonitors(RedisInstance instance) : this()
@@ -37,7 +39,20 @@ namespace RedisManagementStudio
             {
                 this.Invoke(new MethodInvoker(() =>
                 {
-                    listBox1.Items.Insert(0, e.Message);
+                    switch (tscbSources.SelectedIndex)
+                    {
+                        case 1: //不显示心跳包
+                            string[] strList = e.Message.ToString().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if(!strList[strList.Length - 1].Equals("\"PING\""))
+                            {
+                                listBox1.Items.Insert(0, e.Message);
+                            } 
+                            break;
+
+                        default:
+                            listBox1.Items.Insert(0, e.Message);
+                            break;
+                    }
                 }
                 ));
             }
@@ -45,6 +60,16 @@ namespace RedisManagementStudio
             {
                 listBox1.Items.Insert(0, e.Message);
             }
+        }
+
+        private void tsbClear_Click(object sender, EventArgs e)
+        {
+            listBox1.Items.Clear();
+        }
+
+        private void tscbSources_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            listBox1.Items.Clear();
         }
     }
 }

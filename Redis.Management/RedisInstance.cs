@@ -81,6 +81,18 @@ namespace Redis.Management
 
         }
 
+        public RedisClient GetRedisClient()
+        {
+            RedisClient redisClient = new RedisClient(this.IPEndPoint);
+
+            if (redisClient.Connect(1000))
+            {
+                redisClient.Auth(Password);                
+            }
+
+            return redisClient;
+        }
+
         public bool Connect(IPEndPoint endpoint, string password)
         {
             if (_status.Equals(RedisInstanceStatus.Connected)) throw new Exception("Instance is already connected to a server.");

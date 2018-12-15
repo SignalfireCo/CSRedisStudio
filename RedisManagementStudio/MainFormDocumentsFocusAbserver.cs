@@ -92,6 +92,12 @@ namespace RedisManagementStudio
                                 frmDatabases.Tag = args.NewTarget;
                                 break;
 
+                            case "subscription":
+                                frmSubscriptions frmSubscriptions = new frmSubscriptions();
+                                frmSubscriptions.Show(this.DockPanel);
+                                frmSubscriptions.Tag = args.NewTarget;
+                                break;
+
                             default:
                                 break;
                         }

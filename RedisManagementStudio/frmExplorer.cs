@@ -51,6 +51,8 @@ namespace RedisManagementStudio
                 dbfolderNode.Expand();
 
 
+                TreeNode subscriptionNode = node.Nodes.Add("Subscription", "Subscription", "folder", "folder");
+
 
                 node.Expand();
             }

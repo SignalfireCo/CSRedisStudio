@@ -31,8 +31,22 @@ namespace RedisManagementStudio
             if (_database != null)
             {
                 this.TabText = string.Format("db{0} [{1}]", _database.Index, _database.RedisInstance.IPEndPoint);
-                
+
+                List<string[]> rtn = _database.Execute("*");
+                if (rtn != null)
+                {
+                    int index = 1;
+                    foreach (string[] item in rtn)
+                    {
+                        ListViewItem lvItem = listView1.Items.Add(index.ToString());
+                        lvItem.SubItems.AddRange(item);
+
+                        index += 1;
+                    }
+                }
             }
         }
+
+
     }
 }
